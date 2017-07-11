@@ -48,7 +48,7 @@ public class ImgsrcRipper extends AbstractHTMLRipper {
     public List<String> getURLsFromPage(Document doc) {
         List<String> imageURLs = new ArrayList<String>();
         for (Element thumb : doc.select("img")) {
-            String image = thumb.attr("data-src")
+            String image = thumb.attr("src");
             imageURLs.add(image);
         }
         return imageURLs;
