@@ -22,6 +22,7 @@ import com.rarchives.ripme.utils.Http;
 public class ImgsrcRipper extends AbstractHTMLRipper {
     // Current HTML document
     private Document albumDoc = null;
+    private Document albumDoc2 = null;
     private Document siteDoc = null;
 	URL oldUrl = null;
 	int indexNominus = 0;
@@ -51,12 +52,54 @@ public class ImgsrcRipper extends AbstractHTMLRipper {
                         "imgsrc.ru/albumid - got " + url + "instead");
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     @Override
     public Document getFirstPage() throws IOException {
-        if (albumDoc == null) {
-            albumDoc = Http.url(url).get();
+        if (albumDoc2 == null) {
+            albumDoc2 = Http.url(url).get();
         }
         
+//		Get the URLs from the main search page into a list.
+        List<URL> numberofAlbumIdentifiersList = new ArrayList<URL>();    		        
+    		if (numberofAlbumIdentifiersList.size() == 0) {
+       			for (Element thumb : albumDoc2.select("td > a")) {
+            		String imageSearch = thumb.attr("target");
+            		if (imageSearch.equals("_blank")) {
+            			imageSearch = thumb.attr("href");
+             			Pattern p = Pattern.compile("a\\d{7}");
+            			Matcher m = p.matcher(imageSearch);    				
+
+            			if(m.find()) {    			
+            				String totalPageString;
+            				totalPageString = m.group();    					
+            				Scanner inSearch = new Scanner(totalPageString).useDelimiter("[^0-9]+");
+            				int integerSearch = inSearch.nextInt();
+            				URL urlSearch = new URL("http://imgsrc.ru/main/tape.php?ad=" + integerSearch + "&pwd=");
+            				numberofAlbumIdentifiersList.add(urlSearch);
+            			} 
+            		} 		 
+                } 
+    		} 
+//			Get the first URL from the main search list.    		
+    		if (numberofAlbumIdentifiersList.size() > 1) {
+    			albumDoc = Http.url(numberofAlbumIdentifiersList.get(0)).get();    			
+    			numberofAlbumIdentifiersList.remove(0);
+    		} else {
+    			throw new IOException("No more Albums to download");
+    		}
+              
 		List<Integer> numberofAlbumPagesList = new ArrayList<Integer>();						
     	List<String> counting = new ArrayList<String>();
     	for (Element thumb : albumDoc.select("a")) {
@@ -83,8 +126,17 @@ public class ImgsrcRipper extends AbstractHTMLRipper {
     @Override
     public List<String> getURLsFromPage(Document doc) {
     List<String> imageURLs = new ArrayList<String>();
-        for (Element thumb : doc.select("img")) {
-//    		String image = thumb.attr("src");
+		for (Element thumb : doc.select("img")) {
+    		String image = thumb.attr("class");
+    		if (image.equals("big")) {
+    			image = thumb.attr("src");
+        		if(image.length() > 0){
+        			imageURLs.add(image);
+        		}
+    		}
+        }
+
+    	for (Element thumb : doc.select("img")) {
     		String image = thumb.attr("data-src");
     		if(image.length() > 0){
     			imageURLs.add(image);
@@ -102,6 +154,9 @@ public class ImgsrcRipper extends AbstractHTMLRipper {
     public Document getNextPage(Document albumDoc) throws IOException {	
 //    	int maxCounterAlbumPages = 48;
     	indexNominus = indexNominus + 12;
+    	if (indexNominus == maxCounterAlbumPages) {
+    		getFirstPage();
+    	}
     	if (indexNominus > maxCounterAlbumPages) {
     		throw new IOException("Found last page at" + this.url);
     	}
